@@ -25,7 +25,15 @@ namespace A01Server.utils
         public const int DEFAULT_PORT = 5000;                           // Default port number
         public const string DEFAULT_IP = "127.0.0.1";                   // Default IP address
 
-        // Buffer and Timing
+        // Network Logic
         public const int BUFFER_SIZE = 1024;                            // Size of the buffer for data transmission 1024 bytes (1 KB)
+        public const int DISCONNECT_SIGNAL = 0;                         // Signal for client disconnection
+        public const int BUFFER_OFFSET = 0;                             // Buffer offset for data reading
+
+        // Task Delays
+        public const int MAIN_LOOP_DELAY = 100;                         // Main loop delay in milliseconds to prevent CPU overuse (100 ms)
+
+        // Log File
+        public const string LOG_FILE_NAME = "log.txt";                  // Log file name
     }
 }

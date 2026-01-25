@@ -39,8 +39,9 @@ namespace A01Server
                 {
                     TcpClient client = server.AcceptTcpClient();                                // Accept incoming client connection
                     Console.WriteLine("Client connected.");
-                    // Task.Run(() => HandleClientAsync(client, logger));                       // Async handle client connection
+                    Task.Run(() => HandleClientAsync(client, logger));                          // Async handle client connection
                 }
+                Task.Delay(Constants.MAIN_LOOP_DELAY).Wait();                                   // Delay to prevent CPU overuse while waiting for clients
 
             }
             catch (Exception ex)
@@ -65,7 +66,38 @@ namespace A01Server
         //
         private static async Task HandleClientAsync(TcpClient client, LogManager logger)
         {
-            // code here...
+            NetworkStream stream = client.GetStream();                                            // Get network stream from client
+            byte[] buffer = new byte[Constants.BUFFER_SIZE];                                      // Buffer for incoming data
+            int bytesRead = Constants.DISCONNECT_SIGNAL;                                          // Number of bytes read (initialized to 0)
+
+            try
+            {
+                bytesRead = await stream.ReadAsync(buffer, Constants.BUFFER_OFFSET, buffer.Length);                     // Read data from client
+                if (bytesRead > Constants.DISCONNECT_SIGNAL)
+                {
+                    string message = Encoding.ASCII.GetString(buffer, Constants.BUFFER_OFFSET, bytesRead);              // ASCII > UTF-8 for choice for the project as UTF-8 supports emojis
+                    bool limitReached = await logger.WriteLogAsync(message);                                            // Write log using LogManager
+
+                    // Check if file size limit reached
+                    if (limitReached)
+                    {
+                        Console.WriteLine("Log file reached. Stopping...");
+                        isRunning = false; // Stop server if limit reached
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error handling client: {ex.Message}");
+            }
+            finally
+            {
+                stream.Close();
+                client.Close();
+                Console.WriteLine("Client disconnected.");
+            }
+
+            return;
         }
     }
 }

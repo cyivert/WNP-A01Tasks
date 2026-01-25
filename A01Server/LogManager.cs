@@ -19,7 +19,7 @@ namespace A01Server
 {
     internal class LogManager
     {
-        private string logFilePath = "log.txt";
+        private string logFilePath = Constants.LOG_FILE_NAME; // "log.txt" file path
 
         //
         // FUNCTION : WriteLogAsync
