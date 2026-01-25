@@ -6,7 +6,7 @@
    - Majority to all magic number shall be eliminated and constants name should be declared Constant.cs (utils/Constants.cs)
      
 # 3. Networking and Concurrency
-   - Use of Concurrent Client Handling: Server must use ```Task.Run``` or an equivalen async patter tn ohandle multiple simultanenous client connections without blocking the main listner loop.
+   - Use of Concurrent Client Handling: Server must use ```Task.Run``` or an equivalen async pattern tohandle multiple simultanenous client connections without blocking the main listner loop.
    - Data packet integrity: When client sends data, the server must correctly decode before logging into the log file.
      
 # 4. File I/O
