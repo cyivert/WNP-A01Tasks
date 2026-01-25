@@ -1,5 +1,5 @@
 # 1. Config
-   - Appplicatio nmust not used hard-coded IP addressess or Port numbers; these configuration must be read from App.config file at runtime to allow configuration multiple computers withou recompiling the solution
+   - Appplication must not used hard-coded IP addressess or Port numbers; these configuration must be read from App.config file at runtime to allow configuration multiple computers withou recompiling the solution
    - Dyanmic file threshold ```maxFileSize``` limit triggers graceful shutdown must be as well implemented on App.config
 
 # 2 Constants Handling
