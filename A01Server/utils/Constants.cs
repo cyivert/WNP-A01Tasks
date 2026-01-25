@@ -19,7 +19,7 @@ namespace A01Server.utils
         // Network Configuration Keys (from your App.config)
         public const string SERVER_IP = "serverIP";                     // App.config for server IP address
         public const string SERVER_PORT = "serverPort";                 // App.config for server port number
-        public const string FILE_LIMIT = "maxFileSize";                 // App.config for maximum log file size
+        public const string FILE_LIMIT = "maxFileSize";                 // App.config for maximum log file size to trigger graceful stop
 
         // Default Values if Config fails
         public const int DEFAULT_PORT = 5000;                           // Default port number
