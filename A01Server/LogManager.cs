@@ -3,57 +3,64 @@
 * PROJECT : A01-Tasks
 * PROGRAMMER : Cy Iver Torrefranca
 * DESCRIPTION :
-* The functions in this file are used to ...
+* This function contains methods for logging messages to a file asynchronously
 */
 
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using A01Server.utils; // variable name constants
 
 namespace A01Server
 {
     internal class LogManager
     {
-        private string logFilePath = "CentralLog.txt";
-        private long maxSizeInBytes = 10000; // 10KB limit for graceful stop
+        private string logFilePath = "log.txt";
 
         //
         // FUNCTION : WriteLogAsync
-        // DESCRIPTION : Asynchronously writes a log message to the log file.
+        // DESCRIPTION : Asynchronously writes a log message to a file and checks if the file size limit is reached
         // PARAMETERS : 
-        // string message : The log message to write.
+        // string message : The log message to write
         // RETURNS :
-        // Task<bool> : A task that represents the asynchronous operation. The task result is true if the log file size limit is reached; otherwise, false.
+        // Task<bool> : True if the file size limit is reached, otherwise false (from App.config)
         //
         public async Task<bool> WriteLogAsync(string message)
         {
             bool limitReached = false;
+            long maxSize = 0;
+
+            // Utilize your Constants from the utils folder to remove magic strings
+            string configLimit = ConfigurationManager.AppSettings[Constants.FILE_LIMIT_KEY];
 
             try
             {
-                // Use StreamWriter for async writing in .NET Framework 4.7.2
+                // Convert string to long for size comparison
+                maxSize = long.Parse(configLimit);
+
+                // Use StreamWriter for asynchronous file writing
                 using (StreamWriter writer = new StreamWriter(logFilePath, true))
                 {
-                    await writer.WriteLineAsync(message);
+                    await writer.WriteLineAsync(message); // append message to log file
                 }
 
-                // Check file size for graceful stop requirement
+                // Check if file size hit the limit for graceful stop
                 FileInfo fileInfo = new FileInfo(logFilePath);
-                if (fileInfo.Length >= maxSizeInBytes)
+                if (fileInfo.Length >= maxSize)
                 {
                     limitReached = true;
                 }
             }
             catch (Exception ex)
             {
-                // Good programming practice: handle exceptions specifically
-                Console.WriteLine("File Error: " + ex.Message);
+                Console.WriteLine("Log Error: " + ex.Message);
             }
 
-            return limitReached; // Single return statement at the end
+            return limitReached;
         }
     }
 }
