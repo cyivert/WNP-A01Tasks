@@ -19,8 +19,8 @@
    - Once LogManager detects the file has reached the ```maxFileSize```, it switch global bool "isRunning" flag to false
    - Upon shutdown, the server must stop the ```TcpListener``` and close all active TcpClient connections properly before exiting the process
      
-# 6. Requirement 4 (Performance Metrics)\
+# 6. Requirement 4 (Performance Metrics)
    *Experiment with the performance of your solution. You must come up with your own 
 metrics and one of them MUST be some form of valid time measurement.*
-   - Client must utilize the ```System.Diagnostics.Stopwatch``` class to measure the **Round Trip Time** (RTT) of dat packet in miliseconds (ms)
+   - Client must utilize the ```System.Diagnostics.Stopwatch``` class to measure the **Round Trip Time** (RTT) of data packet in miliseconds (ms)
    - Implement metric comparison where the report must compare the performance of synchronous vs asynchronous writing justify chosen solution
