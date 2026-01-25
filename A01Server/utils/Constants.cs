@@ -17,15 +17,15 @@ namespace A01Server.utils
     internal class Constants
     {
         // Network Configuration Keys (from your App.config)
-        public const string SERVER_IP = "serverIP";       //
-        public const string SERVER_PORT = "serverPort";   //
-        public const string FILE_LIMIT = "maxFileSize"; //
+        public const string SERVER_IP = "serverIP";                     // App.config for server IP address
+        public const string SERVER_PORT = "serverPort";                 // App.config for server port number
+        public const string FILE_LIMIT = "maxFileSize";                 // App.config for maximum log file size
 
         // Default Values if Config fails
-        public const int DEFAULT_PORT = 5000;
-        public const string DEFAULT_IP = "127.0.0.1";
+        public const int DEFAULT_PORT = 5000;                           // Default port number
+        public const string DEFAULT_IP = "127.0.0.1";                   // Default IP address
 
         // Buffer and Timing
-        public const int BUFFER_SIZE = 1024;
+        public const int BUFFER_SIZE = 1024;                            // Size of the buffer for data transmission 1024 bytes (1 KB)
     }
 }
