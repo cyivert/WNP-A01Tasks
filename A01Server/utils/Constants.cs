@@ -17,9 +17,9 @@ namespace A01Server.utils
     internal class Constants
     {
         // Network Configuration Keys (from your App.config)
-        public const string IP_KEY = "serverIP";       //
-        public const string PORT_KEY = "serverPort";   //
-        public const string FILE_LIMIT_KEY = "maxFileSize"; //
+        public const string SERVER_IP = "serverIP";       //
+        public const string SERVER_PORT = "serverPort";   //
+        public const string FILE_LIMIT = "maxFileSize"; //
 
         // Default Values if Config fails
         public const int DEFAULT_PORT = 5000;

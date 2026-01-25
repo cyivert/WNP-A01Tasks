@@ -35,7 +35,7 @@ namespace A01Server
             long maxSize = 0;
 
             // Utilize your Constants from the utils folder to remove magic strings
-            string configLimit = ConfigurationManager.AppSettings[Constants.FILE_LIMIT_KEY];
+            string configLimit = ConfigurationManager.AppSettings[Constants.FILE_LIMIT];
 
             try
             {
