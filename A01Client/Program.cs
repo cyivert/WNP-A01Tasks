@@ -1,5 +1,5 @@
 ﻿/*
-* FILE : Program.cs
+* FILE : Program.cs (CLIENT)
 * PROJECT : A01-Tasks
 * PROGRAMMER : Cy Iver Torrefranca
 * DESCRIPTION :
