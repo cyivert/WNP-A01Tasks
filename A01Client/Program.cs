@@ -7,10 +7,12 @@
 */
 
 using System;
-using System.Configuration;
-using System.Net.Sockets;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Net.Sockets;
+using System.Configuration;
 
 namespace A01Client
 {
@@ -18,7 +20,18 @@ namespace A01Client
     {
         static async Task Main(string[] args)
         {
-            // Read server connection details from App.config
+            // Client identification
+            string clientLogicalID;
+
+            if (args.Length > 0)
+            {
+                clientLogicalID = args[0];
+            }
+            else
+            {
+                clientLogicalID = "1";
+            }
+
             string serverIP = ConfigurationManager.AppSettings["ServerIP"];
             int serverPort = int.Parse(ConfigurationManager.AppSettings["ServerPort"]);
 
@@ -26,7 +39,7 @@ namespace A01Client
             bool running = true;
             int messageCount = 0;
 
-            Console.WriteLine("Client started.");
+            Console.WriteLine($"Client:{clientLogicalID} started.");
 
             while (running)
             {
