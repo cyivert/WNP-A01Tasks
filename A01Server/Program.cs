@@ -11,8 +11,10 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using A01Server.utils;
 
@@ -21,6 +23,7 @@ namespace A01Server
     internal class Program
     {
         private static bool isRunning = true; // Flag: Server running status
+        private static int clientCounter = 0; // Counter: Number of connected clients
         static void Main(string[] args)
         {
             string ipString = ConfigurationManager.AppSettings[Constants.SERVER_IP];            // Read server IP from config file
@@ -66,35 +69,41 @@ namespace A01Server
         //
         private static async Task HandleClientAsync(TcpClient client, LogManager logger)
         {
+            string serverId = Interlocked.Increment(ref clientCounter).ToString();                // Unique client ID
+            string clientInfo = client.Client.RemoteEndPoint.ToString();                          // Client endpoint info
+            string rawMessage = string.Empty;
+            string formattedMessage = string.Empty;
+
             NetworkStream stream = client.GetStream();                                            // Get network stream from client
             byte[] buffer = new byte[Constants.BUFFER_SIZE];                                      // Buffer for incoming data
             int bytesRead = Constants.DISCONNECT_SIGNAL;                                          // Number of bytes read (initialized to 0)
 
             try
             {
-                bytesRead = await stream.ReadAsync(buffer, Constants.BUFFER_OFFSET, buffer.Length);                     // Read data from client
+                bytesRead = await stream.ReadAsync(buffer, Constants.BUFFER_OFFSET, buffer.Length);                                                   // Read data from client
                 if (bytesRead > Constants.DISCONNECT_SIGNAL)
                 {
-                    string message = Encoding.ASCII.GetString(buffer, Constants.BUFFER_OFFSET, bytesRead);              // ASCII > UTF-8 for choice for the project as UTF-8 supports emojis
-                    bool limitReached = await logger.WriteLogAsync(message);                                            // Write log using LogManager
+                    rawMessage = Encoding.ASCII.GetString(buffer, Constants.BUFFER_OFFSET, bytesRead);                                                // ASCII > UTF-8 for choice for the project as UTF-8 supports emojis
+                    formattedMessage = $"[{DateTime.Now:HH:mm:ss.fff}] Received on server: {serverId} ({clientInfo}) | {rawMessage.Trim()}";          // log file message format
+                    bool limitReached = await logger.WriteLogAsync(formattedMessage);                                                                 // Write log using LogManager
 
                     // Check if file size limit reached
                     if (limitReached)
                     {
-                        Console.WriteLine("Log file reached. Stopping...");
+                        Console.WriteLine("Log file limit reached. Stopping...");
                         isRunning = false; // Stop server if limit reached
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error handling client: {ex.Message}");
+                Console.WriteLine($"Error handling client {clientInfo}: {ex.Message}");
             }
             finally
             {
                 stream.Close();
                 client.Close();
-                Console.WriteLine("Client disconnected.");
+                Console.WriteLine($"Client {clientInfo} disconnected.");
             }
 
             return;

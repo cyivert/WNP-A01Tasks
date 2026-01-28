@@ -6,20 +6,22 @@
 * This function contains methods for logging messages to a file asynchronously
 */
 
+using A01Server.utils; // variable name constants
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using A01Server.utils; // variable name constants
 
 namespace A01Server
 {
     internal class LogManager
     {
         private string logFilePath = Constants.LOG_FILE_NAME; // "log.txt" file path
+        private static readonly SemaphoreSlim fileLock = new SemaphoreSlim(1, 1); // prevent concurrency conflicts (e.g., multiple clients trying to write to log simultaneously)
 
         //
         // FUNCTION : WriteLogAsync
@@ -36,6 +38,9 @@ namespace A01Server
 
             // Utilize your Constants from the utils folder to remove magic strings
             string configLimit = ConfigurationManager.AppSettings[Constants.FILE_LIMIT];
+
+            // wait to enter critical section
+            await fileLock.WaitAsync();
 
             try
             {
@@ -58,6 +63,10 @@ namespace A01Server
             catch (Exception ex)
             {
                 Console.WriteLine("Log Error: " + ex.Message);
+            }
+            finally
+            {
+                fileLock.Release(); // release the semaphore
             }
 
             return limitReached;
