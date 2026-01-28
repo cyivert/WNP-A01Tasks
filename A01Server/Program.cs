@@ -6,13 +6,20 @@
 * The functions in this file are used to ...
 */
 
+// REFERENCE //
+/* 
+ * Microsoft. (n/a). Console.ForegroundColor property. Microsoft Learn. https://learn.microsoft.com/en-us/dotnet/api/system.console.foregroundcolor
+ */
+
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using A01Server.utils;
 
@@ -21,37 +28,51 @@ namespace A01Server
     internal class Program
     {
         private static bool isRunning = true; // Flag: Server running status
+        private static int clientCounter = 0; // Counter: Number of connected clients
         static void Main(string[] args)
         {
-            string ipString = ConfigurationManager.AppSettings[Constants.SERVER_IP];            // Read server IP from config file
-            int port = int.Parse(ConfigurationManager.AppSettings[Constants.SERVER_PORT]);      // Read server port from config file
+            string ipString = ConfigurationManager.AppSettings[Constants.SERVER_IP];                            // Read server IP from config file
+            int port = int.Parse(ConfigurationManager.AppSettings[Constants.SERVER_PORT]);                      // Read server port from config file
 
-            IPAddress hostAddress = IPAddress.Parse(ipString);                                  // Parse the IP address string to an IPAddress object named hostAddress
-            TcpListener server = new TcpListener(hostAddress, port);                            // Create a TCP listener named server
-            LogManager logger = new LogManager();                                               // Create a log manager instance named logger
+            IPAddress hostAddress = IPAddress.Parse(ipString);                                                  // Parse the IP address string to an IPAddress object named hostAddress
+            TcpListener server = new TcpListener(hostAddress, port);                                            // Create a TCP listener named server
+            LogManager logger = new LogManager();                                                               // Create a log manager instance named logger
 
             try
             {
-                server.Start();                                                                 // Start the server
-                Console.WriteLine($"Server started on {hostAddress}:{port}");
+                // Start the server
+                server.Start();
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Server started on {hostAddress}:{port}");
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Waiting for clients...");
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Log file: {Constants.LOG_FILE_NAME}");
+                Console.ResetColor();
 
                 while (isRunning)
                 {
-                    TcpClient client = server.AcceptTcpClient();                                // Accept incoming client connection
-                    Console.WriteLine("Client connected.");
-                    Task.Run(() => HandleClientAsync(client, logger));                          // Async handle client connection
+                    TcpClient client = server.AcceptTcpClient();                                                // Accept incoming client connection
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] CONNECTED: {client.Client.RemoteEndPoint.ToString()}");
+                    Console.ResetColor();
+                    Task.Run(() => HandleClientAsync(client, logger));                                          // Async handle client connection
                 }
-                Task.Delay(Constants.MAIN_LOOP_DELAY).Wait();                                   // Delay to prevent CPU overuse while waiting for clients
+
+                Task.Delay(Constants.MAIN_LOOP_DELAY).Wait();                                                   // Delay to prevent CPU overuse while waiting for clients
 
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error starting server: {ex.Message}");
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ERROR: {ex.Message}");
+                Console.ResetColor();
             }
             finally
             {
-                server.Stop();                                                                   // Stop the server
-                Console.WriteLine("Server stopped.");
+                // Stops the server
+                server.Stop();
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Server stopped.");
+                Console.ResetColor();
             }
         }
 
@@ -66,35 +87,53 @@ namespace A01Server
         //
         private static async Task HandleClientAsync(TcpClient client, LogManager logger)
         {
+            string serverId = Interlocked.Increment(ref clientCounter).ToString();                // Unique client ID
+            string clientInfo = client.Client.RemoteEndPoint.ToString();                          // Client endpoint info
+            string rawMessage = string.Empty;
+            string formattedMessage = string.Empty;
+
             NetworkStream stream = client.GetStream();                                            // Get network stream from client
             byte[] buffer = new byte[Constants.BUFFER_SIZE];                                      // Buffer for incoming data
             int bytesRead = Constants.DISCONNECT_SIGNAL;                                          // Number of bytes read (initialized to 0)
 
             try
             {
-                bytesRead = await stream.ReadAsync(buffer, Constants.BUFFER_OFFSET, buffer.Length);                     // Read data from client
+                bytesRead = await stream.ReadAsync(buffer, Constants.BUFFER_OFFSET, buffer.Length);                                                   // Read data from client
                 if (bytesRead > Constants.DISCONNECT_SIGNAL)
                 {
-                    string message = Encoding.ASCII.GetString(buffer, Constants.BUFFER_OFFSET, bytesRead);              // ASCII > UTF-8 for choice for the project as UTF-8 supports emojis
-                    bool limitReached = await logger.WriteLogAsync(message);                                            // Write log using LogManager
+                    rawMessage = Encoding.ASCII.GetString(buffer, Constants.BUFFER_OFFSET, bytesRead);                                                // ASCII > UTF-8 for choice for the project as UTF-8 supports emojis
+                    formattedMessage = $"[{DateTime.Now:HH:mm:ss.fff}] Received on server: {serverId} ({clientInfo}) | {rawMessage.Trim()}";          // log file message format
+                    bool limitReached = await logger.WriteLogAsync(formattedMessage);                                                                 // Write log using LogManager
 
                     // Check if file size limit reached
                     if (limitReached)
                     {
-                        Console.WriteLine("Log file reached. Stopping...");
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] WARNING: File limit reached! Initiating graceful shutdown...");
+                        Console.ResetColor();
                         isRunning = false; // Stop server if limit reached
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.Blue;
+                        Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] PROCESSED: {clientInfo}");
+                        Console.ResetColor();
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error handling client: {ex.Message}");
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ERROR: {clientInfo} | {ex.Message}");
+                Console.ResetColor();
             }
             finally
             {
                 stream.Close();
                 client.Close();
-                Console.WriteLine("Client disconnected.");
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] DISCONNECTED: {clientInfo}\n");
+                Console.ResetColor();
             }
 
             return;
