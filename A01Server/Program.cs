@@ -53,14 +53,15 @@ namespace A01Server
 
                 while (isRunning)
                 {
-                    TcpClient client = server.AcceptTcpClient();                                                // Accept incoming client connection
+                    TcpClient client = server.AcceptTcpClient(); // Accept incoming client connection
                     Console.ForegroundColor = ConsoleColor.Green;
                     Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] CONNECTED: {client.Client.RemoteEndPoint.ToString()}");
                     Console.ResetColor();
-                    Task.Run(() => HandleClientAsync(client, logger, cts.Token));                                          // Async handle client connection
+                    Task.Run(() => HandleClientAsync(client, logger, cts.Token)); // Async handle client connection
                 }
 
-                Task.Delay(Constants.MAIN_LOOP_DELAY).Wait();                                                   // Delay to prevent CPU overuse while waiting for clients
+                // Delay to prevent CPU overuse while waiting for clients
+                Task.Delay(Constants.MAIN_LOOP_DELAY).Wait();
 
             }
             catch (Exception ex)
