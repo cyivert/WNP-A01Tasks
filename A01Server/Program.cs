@@ -82,8 +82,8 @@ namespace A01Server
         // FUNCTION : HandleClientAsync
         // DESCRIPTION : Receives data from a client and uses LogManager to save it. (as planned)
         // PARAMETERS : 
-        // TcpClient client : The connected client.
-        // LogManager logger : The log manager instance.
+        // TcpClient client - The connected client.
+        // LogManager logger - The log manager instance.
         // RETURNS :
         // to be determined
         //

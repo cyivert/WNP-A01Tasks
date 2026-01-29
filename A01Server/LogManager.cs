@@ -27,7 +27,7 @@ namespace A01Server
         // FUNCTION : WriteLogAsync
         // DESCRIPTION : Asynchronously writes a log message to a file and checks if the file size limit is reached
         // PARAMETERS : 
-        // string message : The log message to write
+        // string message - The log message to write
         // RETURNS :
         // Task<bool> : True if the file size limit is reached, otherwise false (from App.config)
         //

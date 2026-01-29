@@ -16,5 +16,7 @@ namespace A01Client.utils
 {
     internal class Constants
     {
+        public const string CLIENT_DEFAULT_ID = "1";                     // Default client logical ID
+        public const int INITIAL_MESSAGE_COUNT = 0;                                // Size of the buffer for data transmission 1024 bytes (1 KB)
     }
 }
