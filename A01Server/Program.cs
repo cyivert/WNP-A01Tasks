@@ -3,7 +3,9 @@
 * PROJECT : A01-Tasks
 * PROGRAMMER : Cy Iver Torrefranca 
 * DESCRIPTION :
-* The functions in this file are used to ...
+* This file contains the main server program that listens for client connections,
+* receives messages asynchronously, logs them to a file, and handles graceful shutdown
+* when the log file size limit is reached.
 */
 
 // REFERENCE //

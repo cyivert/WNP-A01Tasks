@@ -1,9 +1,10 @@
 ﻿/*
 * FILE : Program.cs (CLIENT)
 * PROJECT : A01-Tasks
-* PROGRAMMER : Cy Iver Torrefranca
+* PROGRAMMER : Cy Iver Torrefranca, Toro-Abasi Udon
 * DESCRIPTION :
-* The functions in this file are used to ...
+* This file contains the main client program that connects to a server, asynchronously sends messages,
+* measures transmission time, and handles graceful shutdown upon server unavailability.
 */
 
 using System;
