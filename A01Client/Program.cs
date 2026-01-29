@@ -58,8 +58,13 @@ namespace A01Client
                 {
                     using (TcpClient client = new TcpClient())
                     {
+                        tracker.StartTracking();
+
                         // Connect to server
                         await client.ConnectAsync(serverIP, serverPort);
+
+                        // Get elapsed time (in milliseconds)
+                        long elapsedMs = tracker.GetElapsedMs();
 
                         // Get the network stream to send data to the server
                         using (NetworkStream stream = client.GetStream())
@@ -67,21 +72,14 @@ namespace A01Client
                             messageCount++;
 
                             // payload message sent to server logs
-                            string message = $"[{DateTime.Now:HH:mm:ss.fff}] ID:{clientLogicalID} | Msg:{messageCount}\n";
+                            string message = $"ID:{clientLogicalID} | Msg:{messageCount} | Latency:{elapsedMs}ms\n";
                             byte[] data = Encoding.ASCII.GetBytes(message);
-
-                            tracker.StartTracking();
 
                             // Send data asynchronously
                             await stream.WriteAsync(data, 0, data.Length);
 
-                            // Get elapsed time (in milliseconds)
-                            long elapsedMs = tracker.GetElapsedMs();
-
-                            string logMsg = $"[{DateTime.Now:HH:mm:ss.fff}] ID:{clientLogicalID} | Msg:{messageCount} | Latency:{elapsedMs}ms";
-
                             Console.ForegroundColor = ConsoleColor.Green;
-                            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Sent: {logMsg}");
+                            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Sent: {message.Trim()}");
                             Console.ResetColor();
                         }
                     }
