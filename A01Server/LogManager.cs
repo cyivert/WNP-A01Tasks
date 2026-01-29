@@ -4,6 +4,8 @@
 * PROGRAMMER : Cy Iver Torrefranca
 * DESCRIPTION :
 * This function contains methods for logging messages to a file asynchronously
+* and checking if the log file size limit is reached for graceful shutdown.
+* CancellationTOken is used to handle server shutdown scenarios.
 */
 
 using A01Server.utils; // variable name constants
@@ -31,21 +33,17 @@ namespace A01Server
         // RETURNS :
         // Task<bool> : True if the file size limit is reached, otherwise false (from App.config)
         //
-        public async Task<bool> WriteLogAsync(string message)
+        public async Task<bool> WriteLogAsync(string message, CancellationToken token)
         {
             bool limitReached = false;
-            long maxSize = 0;
+            long maxSize = long.Parse(ConfigurationManager.AppSettings[Constants.FILE_LIMIT]);
 
-            // Utilize your Constants from the utils folder to remove magic strings
-            string configLimit = ConfigurationManager.AppSettings[Constants.FILE_LIMIT];
-
-            // wait to enter critical section
-            await fileLock.WaitAsync();
+            // waits for the lock or cancel if  the server is stopping
+            await fileLock.WaitAsync(token);
 
             try
             {
-                // Convert string to long for size comparison
-                maxSize = long.Parse(configLimit);
+                token.ThrowIfCancellationRequested();
 
                 // Use StreamWriter for asynchronous file writing
                 using (StreamWriter writer = new StreamWriter(logFilePath, true))

@@ -31,6 +31,7 @@ namespace A01Server
     {
         private static bool isRunning = true; // Flag: Server running status
         private static int clientCounter = 0; // Counter: Number of connected clients
+        private static CancellationTokenSource cts = new CancellationTokenSource(); // Token source for graceful shutdown
         static void Main(string[] args)
         {
             string ipString = ConfigurationManager.AppSettings[Constants.SERVER_IP];                            // Read server IP from config file
@@ -56,7 +57,7 @@ namespace A01Server
                     Console.ForegroundColor = ConsoleColor.Green;
                     Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] CONNECTED: {client.Client.RemoteEndPoint.ToString()}");
                     Console.ResetColor();
-                    Task.Run(() => HandleClientAsync(client, logger));                                          // Async handle client connection
+                    Task.Run(() => HandleClientAsync(client, logger, cts.Token));                                          // Async handle client connection
                 }
 
                 Task.Delay(Constants.MAIN_LOOP_DELAY).Wait();                                                   // Delay to prevent CPU overuse while waiting for clients
@@ -71,6 +72,7 @@ namespace A01Server
             finally
             {
                 // Stops the server
+                cts.Dispose();
                 server.Stop();
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Server stopped.");
@@ -87,51 +89,60 @@ namespace A01Server
         // RETURNS :
         // to be determined
         //
-        private static async Task HandleClientAsync(TcpClient client, LogManager logger)
+        private static async Task HandleClientAsync(TcpClient client, LogManager logger, CancellationToken token)
         {
             string serverId = Interlocked.Increment(ref clientCounter).ToString();                // Unique client ID
-            string clientInfo = client.Client.RemoteEndPoint.ToString();                          // Client endpoint info
+            string clientInfo = client.Client.RemoteEndPoint.ToString();      
+
+            // Client endpoint info
             string rawMessage = string.Empty;
             string formattedMessage = string.Empty;
 
-            NetworkStream stream = client.GetStream();                                            // Get network stream from client
-            byte[] buffer = new byte[Constants.BUFFER_SIZE];                                      // Buffer for incoming data
-            int bytesRead = Constants.DISCONNECT_SIGNAL;                                          // Number of bytes read (initialized to 0)
-
             try
             {
-                bytesRead = await stream.ReadAsync(buffer, Constants.BUFFER_OFFSET, buffer.Length);                                                   // Read data from client
-                if (bytesRead > Constants.DISCONNECT_SIGNAL)
+                using (NetworkStream stream = client.GetStream())                                                                                         // Get network stream
                 {
-                    rawMessage = Encoding.ASCII.GetString(buffer, Constants.BUFFER_OFFSET, bytesRead);                                                // ASCII > UTF-8 for choice for the project as UTF-8 supports emojis
-                    formattedMessage = $"[{DateTime.Now:HH:mm:ss.fff}] Received on server: {serverId} ({clientInfo}) | {rawMessage.Trim()}";          // log file message format
-                    bool limitReached = await logger.WriteLogAsync(formattedMessage);                                                                 // Write log using LogManager
+                    byte[] buffer = new byte[Constants.BUFFER_SIZE];                                                                                      // Buffer for incoming data
+                    int bytesRead = Constants.DISCONNECT_SIGNAL;
+                    bytesRead = await stream.ReadAsync(buffer, Constants.BUFFER_OFFSET, buffer.Length);                                                   // Read data from client
 
-                    // Check if file size limit reached
-                    if (limitReached)
+                    if (bytesRead > Constants.DISCONNECT_SIGNAL)
                     {
-                        Console.ForegroundColor = ConsoleColor.Yellow;
-                        Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] WARNING: File limit reached! Initiating graceful shutdown...");
-                        Console.ResetColor();
-                        isRunning = false; // Stop server if limit reached
-                    }
-                    else
-                    {
-                        Console.ForegroundColor = ConsoleColor.Blue;
-                        Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] PROCESSED: {clientInfo}");
-                        Console.ResetColor();
+                        rawMessage = Encoding.ASCII.GetString(buffer, Constants.BUFFER_OFFSET, bytesRead);                                                // ASCII > UTF-8 for choice for the project as UTF-8 supports emojis
+                        formattedMessage = $"[{DateTime.Now:HH:mm:ss.fff}] Received on server: {serverId} ({clientInfo}) | {rawMessage.Trim()}";          // log file message format
+                        bool limitReached = await logger.WriteLogAsync(formattedMessage, token);                                                                 // Write log using LogManager
+
+                        // Check if file size limit reached
+                        if (limitReached)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Yellow;
+                            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] WARNING: File limit reached! Initiating graceful shutdown...");
+                            Console.ResetColor();
+                            isRunning = false; // Stop server if limit reached
+                        }
+                        else
+                        {
+                            Console.ForegroundColor = ConsoleColor.Blue;
+                            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] PROCESSED: {clientInfo}");
+                            Console.ResetColor();
+                        }
                     }
                 }
             }
-            catch (Exception ex)
+            catch (OperationCanceledException) // Handle task cancellation
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] SYSTEM: Task for {clientInfo} cancelled due to server shutdown.");
+                Console.ResetColor();
+            }
+            catch (Exception ex) // General exception handling
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ERROR: {clientInfo} | {ex.Message}");
                 Console.ResetColor();
             }
-            finally
+            finally // Ensure client is closed
             {
-                stream.Close();
                 client.Close();
                 Console.ForegroundColor = ConsoleColor.Yellow;
                 Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] DISCONNECTED: {clientInfo}\n");
