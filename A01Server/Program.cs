@@ -71,9 +71,8 @@ namespace A01Server
             }
             finally
             {
-                // Stops the server
-                cts.Dispose();
-                server.Stop();
+                cts.Dispose();                                                                  // Dispose cancellation token source
+                server.Stop();                                                                  // Stop the server
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Server stopped.");
                 Console.ResetColor();
