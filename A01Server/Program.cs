@@ -32,7 +32,7 @@ namespace A01Server
         private static bool isRunning = true; // Flag: Server running status
         private static int clientCounter = 0; // Counter: Number of connected clients
         private static CancellationTokenSource cts = new CancellationTokenSource(); // Token source for graceful shutdown
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             string ipString = ConfigurationManager.AppSettings[Constants.SERVER_IP];                            // Read server IP from config file
             int port = int.Parse(ConfigurationManager.AppSettings[Constants.SERVER_PORT]);                      // Read server port from config file
@@ -57,12 +57,21 @@ namespace A01Server
                     Console.ForegroundColor = ConsoleColor.Green;
                     Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] CONNECTED: {client.Client.RemoteEndPoint.ToString()}");
                     Console.ResetColor();
-                    Task.Run(() => HandleClientAsync(client, logger, cts.Token)); // Async handle client connection
+                    await Task.Run(() => HandleClientAsync(client, logger, cts.Token)); // Async handle client connection
                 }
 
                 // Delay to prevent CPU overuse while waiting for clients
                 Task.Delay(Constants.MAIN_LOOP_DELAY).Wait();
 
+            }
+            catch (SocketException ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                string errorMsg = $"[{DateTime.Now:HH:mm:ss.fff}] ERROR: {ex.Message}";
+                Console.WriteLine(errorMsg);
+                Console.ResetColor();
+
+                await logger.WriteLogAsync(errorMsg, CancellationToken.None);
             }
             catch (Exception ex)
             {
