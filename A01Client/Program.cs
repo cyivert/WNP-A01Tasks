@@ -64,9 +64,14 @@ namespace A01Client
                         // Get the network stream to send data to the server
                         using (NetworkStream stream = client.GetStream())
                         {
+                            tracker.StartTracking();
                             messageCount++;
 
-                            string message = $"Client message #{messageCount}\n";
+                            // Get elapsed time (in milliseconds)
+                            long elapsedMs = tracker.GetElapsedMs();
+
+                            // payload message sent to server logs
+                            string message = $"[{DateTime.Now:HH:mm:ss.fff}] ID:{clientLogicalID} | Msg:{messageCount} | Latnecy:{elapsedMs}ms\n";
                             byte[] data = Encoding.ASCII.GetBytes(message);
 
                             // Start performance tracking
@@ -75,11 +80,8 @@ namespace A01Client
                             // Send data asynchronously
                             await stream.WriteAsync(data, 0, data.Length);
 
-                            // Get elapsed time (in milliseconds)
-                            long elapsedMs = tracker.GetElapsedMs();
-
                             Console.ForegroundColor = ConsoleColor.Green;
-                            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Sent: {message.Trim()} | Transmission Time: {elapsedMs} ms");
+                            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Sent: {message.Trim()}");
                             Console.ResetColor();
                         }
                     }
