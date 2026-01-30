@@ -1,7 +1,7 @@
 ﻿/*
 * FILE : Program.cs (CLIENT)
 * PROJECT : A01-Tasks
-* PROGRAMMER : Cy Iver Torrefranca, Toro-Abasi Udon
+* PROGRAMMER : Cy Iver Torrefranca, Toro-Abasi Udon, Ritik Sanjiv Vyas
 * DESCRIPTION :
 * This file contains the main client program that connects to a server, asynchronously sends messages,
 * measures transmission time, and handles graceful shutdown upon server unavailability.
@@ -49,7 +49,9 @@ namespace A01Client
             int serverPort = int.Parse(ConfigurationManager.AppSettings["ServerPort"]);                 // Server Port from config
             int clientThreads = int.Parse(ConfigurationManager.AppSettings["clientThreads"]);           // Number of client threads from config
 
+            Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine($"Client:{clientLogicalID} starting {clientThreads} threads...");
+            Console.ResetColor();
 
             // List to hold client tasks
             List<Task> clientTasks = new List<Task>();
@@ -83,10 +85,6 @@ namespace A01Client
             //Console.WriteLine($"Total Threads: {clientThreads}");
             //Console.WriteLine($"Total Messages Sent: {totalMessages}");
             //Console.WriteLine($"Total Time: {totalTimer.ElapsedMilliseconds} ms");
-
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Client: {clientLogicalID} started");
-            Console.ResetColor();
         }
 
         //
