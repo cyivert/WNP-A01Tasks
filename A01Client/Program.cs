@@ -26,6 +26,9 @@ namespace A01Client
 {
     internal class Program
     {
+        private static int totalMessages = 0;                           // Counter: Total messages sent across all threads
+        private static readonly object lockObject = new object();       // Lock object for thread-safe counter increment
+        private static bool isRunning = true;                           // Flag: Client running status
         static async Task Main(string[] args)
         {
             // Client identification
