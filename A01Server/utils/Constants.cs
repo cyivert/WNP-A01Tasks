@@ -30,9 +30,6 @@ namespace A01Server.utils
         public const int DISCONNECT_SIGNAL = 0;                         // Signal for client disconnection
         public const int BUFFER_OFFSET = 0;                             // Buffer offset for data reading
 
-        // Task Delays
-        public const int MAIN_LOOP_DELAY = 100;                         // Main loop delay in milliseconds to prevent CPU overuse (100 ms)
-
         // Log File
         public const string LOG_FILE_NAME = "log.txt";                  // Log file name
     }

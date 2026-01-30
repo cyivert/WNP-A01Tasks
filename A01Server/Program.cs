@@ -51,18 +51,34 @@ namespace A01Server
                 Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Log file: {Constants.LOG_FILE_NAME}");
                 Console.ResetColor();
 
+                /*
+                 * clientasks this list will hold all the tasks for connected clients
+                 * this allows the server to manage multiple clients concurrently
+                 * and ensures that during shutdown, the server can wait for all client tasks to complete.
+                 */
+                List<Task> clientTasks = new List<Task>();
+
                 while (isRunning)
                 {
-                    TcpClient client = server.AcceptTcpClient(); // Accept incoming client connection
+                    if (cts.Token.IsCancellationRequested)
+                    {
+                        break; // Exit loop if cancellation is requested
+                    }
+
+                    TcpClient client = await server.AcceptTcpClientAsync();
                     Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] CONNECTED: {client.Client.RemoteEndPoint.ToString()}");
+                    Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] CONNECTED: {client.Client.RemoteEndPoint}"); // Log client connection
                     Console.ResetColor();
-                    await Task.Run(() => HandleClientAsync(client, logger, cts.Token)); // Async handle client connection
+
+                    Task clientTask = HandleClientAsync(client, logger, cts.Token);
+                    clientTasks.Add(clientTask);
+
+                    // Clean up completed tasks periodically
+                    clientTasks.RemoveAll(task => task.IsCompleted);
                 }
 
-                // Delay to prevent CPU overuse while waiting for clients
-                Task.Delay(Constants.MAIN_LOOP_DELAY).Wait();
-
+                // Wait for all clients to finish during shutdown
+                await Task.WhenAll(clientTasks);
             }
             catch (SocketException ex)
             {
@@ -124,6 +140,7 @@ namespace A01Server
                         // Check if file size limit reached
                         if (limitReached)
                         {
+                            // Log limit reached and initiate shutdown
                             Console.ForegroundColor = ConsoleColor.Yellow;
                             Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] WARNING: File limit reached! Initiating graceful shutdown...");
                             Console.ResetColor();
@@ -131,6 +148,7 @@ namespace A01Server
                         }
                         else
                         {
+                            // Log successful processing
                             Console.ForegroundColor = ConsoleColor.Blue;
                             Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] PROCESSED: {clientInfo}");
                             Console.ResetColor();

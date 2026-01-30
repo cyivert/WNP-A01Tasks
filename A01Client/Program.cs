@@ -58,6 +58,8 @@ namespace A01Client
                 {
                     using (TcpClient client = new TcpClient())
                     {
+                        // Start tracking time before connection: enables latency measurement more accurately
+                        // as it tracks time taken to establish connection + send message
                         tracker.StartTracking();
 
                         // Connect to server
