@@ -63,8 +63,12 @@ namespace A01Client
             // Create multiple client threads
             for (int i = 0; i < clientThreads; i++)
             {
-                string threadId = $"Client:{clientLogicalID} | Thread:{i + 1}";                                            // Unique thread identifier
-                clientTasks.Add(Task.Run(async () => {await RunClientThread(serverIP, serverPort, threadId);}));    // Start client thread
+                // Unique thread identifier
+                string clienThreadId = $"[{DateTime.Now:HH:mm:ss.fff}] Client:{clientLogicalID} | Thread:{i + 1} |";
+
+                // Start client thread task and add to list using lambda to pass parameters to async method
+                // Each thread runs RunClientThread method
+                clientTasks.Add(Task.Run(async () => {await RunClientThread(serverIP, serverPort, clienThreadId);}));
             }
 
             // Wait for all threads to complete
@@ -80,76 +84,9 @@ namespace A01Client
             //Console.WriteLine($"Total Messages Sent: {totalMessages}");
             //Console.WriteLine($"Total Time: {totalTimer.ElapsedMilliseconds} ms");
 
-            // Performance tracker instance
-            PerformanceTracker tracker = new PerformanceTracker();
-            int messageCount = Constants.INITIAL_MESSAGE_COUNT; // default = 0
-
-
-
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Client: {clientLogicalID} started");
             Console.ResetColor();
-
-            // Main client loop
-            while (isRunning)
-            {
-                try
-                {
-                    using (TcpClient client = new TcpClient())
-                    {
-                        // Start tracking time before connection: enables latency measurement more accurately
-                        // as it tracks time taken to establish connection + send message
-                        tracker.StartTracking();
-
-                        // Connect to server
-                        await client.ConnectAsync(serverIP, serverPort);
-
-                        // Get elapsed time (in milliseconds)
-                        long elapsedMs = tracker.GetElapsedMs();
-
-                        // Get the network stream to send data to the server
-                        using (NetworkStream stream = client.GetStream())
-                        {
-                            messageCount++;
-
-                            // payload message sent to server logs
-                            string message = $"ID:{clientLogicalID} | Msg:{messageCount} | \n";
-                            byte[] data = Encoding.ASCII.GetBytes(message);
-
-                            // Send data asynchronously
-                            await stream.WriteAsync(data, 0, data.Length);
-
-                            Console.ForegroundColor = ConsoleColor.Green;
-                            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Sent: {message.Trim()}");
-                            Console.ResetColor();
-                        }
-                    }
-
-                    // Small delay between sends
-                    await Task.Delay(300);
-                }
-                catch (SocketException)
-                {
-                    // Server is no longer accepting connections (graceful shutdown)
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Server unavailable. Shutting down client.");
-                    Console.ResetColor();
-                    isRunning = false;
-                }
-                catch (Exception ex)
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Client error: {ex.Message}");
-                    Console.ResetColor();
-                    isRunning = false;
-                }
-            }
-
-
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("Client exited gracefully.");
-            Console.ResetColor();
-            Console.ReadKey();
         }
 
         //
@@ -158,15 +95,15 @@ namespace A01Client
         // PARAMETERS : 
         // string serverIp - Server IP address
         // int serverPort - Server port number
-        // string threadId - Unique thread identifier
+        // string clienThreadId - Unique thread identifier
         // RETURNS : Task - Async task
         //
-        private static async Task RunClientThread(string serverIp, int serverPort, string threadId)
+        private static async Task RunClientThread(string serverIp, int serverPort, string clientThreadId)
         {
             int threadMessageCount = 0;
             PerformanceTracker threadTracker = new PerformanceTracker();
 
-            Console.WriteLine($"[{threadId}] Thread started.");
+            Console.WriteLine($"{clientThreadId} Thread started.");
 
             while (isRunning)
             {
@@ -174,23 +111,31 @@ namespace A01Client
                 {
                     using (TcpClient client = new TcpClient())
                     {
+                        // Start tracking time before connection: enables latency measurement more accurately
+                        threadTracker.StartTracking();
+
                         // Connect to server
                         await client.ConnectAsync(serverIp, serverPort);
 
+                        // Get elapsed time (in milliseconds)
+                        long elapsedMs = threadTracker.GetElapsedMs();
+
+                        // Get the network stream to send data to the server
                         using (NetworkStream stream = client.GetStream())
                         {
                             threadMessageCount++;
 
-                            string message = $"Client ID: {threadId}\n";
-                            byte[] data = Encoding.ASCII.GetBytes(message);
+                            // paylaod message to server logs
+                            string message = 
+                                $"Client ID: {clientThreadId} " +
+                                $"Latency:{elapsedMs} | " +
+                                $"Messages:{threadMessageCount} | " +
+                                $"Total Msgs:{totalMessages}\n";
 
-                            // Start performance tracking
-                            threadTracker.StartTracking();
+                            byte[] data = Encoding.ASCII.GetBytes(message);
 
                             // Send data asynchronously
                             await stream.WriteAsync(data, 0, data.Length);
-
-                            long elapsedMs = threadTracker.GetElapsedMs();
 
                             // Update shared counters
                             lock (lockObject)
@@ -198,11 +143,12 @@ namespace A01Client
                                 totalMessages++;
                             }
 
+                            // Log thread send details
                             Console.WriteLine(
-                                $"[{threadId}] " +
-                                $"" + $"Latency: {elapsedMs} ms | " + 
-                                $"Thread Messages: {threadMessageCount} | " + 
-                                $"Total Messages: {totalMessages}" );
+                                $"{clientThreadId} " +
+                                $"" + $"Latency:{elapsedMs} ms | " + 
+                                $"Messages:{threadMessageCount} | " + 
+                                $"Total Messages:{totalMessages}" );
                         }
                     }
 
@@ -212,19 +158,19 @@ namespace A01Client
                 catch (SocketException)
                 {
                     // Server is no longer accepting connections (graceful shutdown)
-                    Console.WriteLine($"[{threadId}] Server unavailable. Stopping thread.");
+                    Console.WriteLine($"{clientThreadId} Server unavailable. Stopping thread.");
                     isRunning = false;
                     break;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[{threadId}] Error: {ex.Message}");
+                    Console.WriteLine($"{clientThreadId} Error: {ex.Message}");
                     isRunning = false;
                     break;
                 }
             }
 
-            Console.WriteLine($"[{threadId}] Thread completed. Sent {threadMessageCount} messages.");
+            Console.WriteLine($"{clientThreadId} Thread completed. Sent {threadMessageCount} messages.");
 
             return;
         }
