@@ -26,11 +26,9 @@ namespace A01Client
 {
     internal class Program
     {
-
-        // Static variables for tracking across all threads
-        private static int totalMessages = 0;
-        private static readonly object lockObject = new object();
-        private static bool isRunning = true; // Flag: Client running status
+        private static int totalMessages = 0;                           // Counter: Total messages sent across all threads
+        private static readonly object lockObject = new object();       // Lock object for thread-safe counter increment
+        private static bool isRunning = true;                           // Flag: Client running status
 
         static async Task Main(string[] args)
         {
@@ -49,35 +47,38 @@ namespace A01Client
 
             string serverIP = ConfigurationManager.AppSettings["ServerIP"];                             // Server IP from config
             int serverPort = int.Parse(ConfigurationManager.AppSettings["ServerPort"]);                 // Server Port from config
-            int clientThreads = int.Parse(ConfigurationManager.AppSettings["clientThreads"]);              // Number of client threads from config
+            int clientThreads = int.Parse(ConfigurationManager.AppSettings["clientThreads"]);           // Number of client threads from config
 
             Console.WriteLine($"Client:{clientLogicalID} starting {clientThreads} threads...");
 
+            // List to hold client tasks
             List<Task> clientTasks = new List<Task>();
-            Stopwatch totalTimer = new Stopwatch();
+
+            // Start total performance timer
+            Stopwatch totalTimer = new Stopwatch(); // add to performance tracker later
+
+            // Start total timer
             totalTimer.Start();
 
             // Create multiple client threads
             for (int i = 0; i < clientThreads; i++)
             {
-                string threadId = $"{clientLogicalID} | Thread:{i + 1}";
-                clientTasks.Add(Task.Run(async () =>
-                {
-                    await RunClientThread(serverIP, serverPort, threadId);
-                }));
+                string threadId = $"Client:{clientLogicalID} | Thread:{i + 1}";                                            // Unique thread identifier
+                clientTasks.Add(Task.Run(async () => {await RunClientThread(serverIP, serverPort, threadId);}));    // Start client thread
             }
 
             // Wait for all threads to complete
             await Task.WhenAll(clientTasks);
             totalTimer.Stop();
 
+            // **DISABLED**
             // Display performance summary
-            Console.WriteLine("\n================================");
-            Console.WriteLine("PERFORMANCE SUMMARY");
-            Console.WriteLine("================================");
-            Console.WriteLine($"Total Threads: {clientThreads}");
-            Console.WriteLine($"Total Messages Sent: {totalMessages}");
-            Console.WriteLine($"Total Time: {totalTimer.ElapsedMilliseconds} ms");
+            //Console.WriteLine("\n================================");
+            //Console.WriteLine("PERFORMANCE SUMMARY");
+            //Console.WriteLine("================================");
+            //Console.WriteLine($"Total Threads: {clientThreads}");
+            //Console.WriteLine($"Total Messages Sent: {totalMessages}");
+            //Console.WriteLine($"Total Time: {totalTimer.ElapsedMilliseconds} ms");
 
             // Performance tracker instance
             PerformanceTracker tracker = new PerformanceTracker();
@@ -89,6 +90,7 @@ namespace A01Client
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Client: {clientLogicalID} started");
             Console.ResetColor();
 
+            // Main client loop
             while (isRunning)
             {
                 try
@@ -111,7 +113,7 @@ namespace A01Client
                             messageCount++;
 
                             // payload message sent to server logs
-                            string message = $"ID:{clientLogicalID} | Msg:{messageCount} | Latency:{elapsedMs}ms\n";
+                            string message = $"ID:{clientLogicalID} | Msg:{messageCount} | \n";
                             byte[] data = Encoding.ASCII.GetBytes(message);
 
                             // Send data asynchronously
@@ -197,11 +199,10 @@ namespace A01Client
                             }
 
                             Console.WriteLine(
-                                $"[{threadId}] Sent: {message.Trim()} | " +
-                                $"Latency: {elapsedMs} ms | " +
-                                $"Thread Messages: {threadMessageCount} | " +
-                                $"Total Messages: {totalMessages}"
-                            );
+                                $"[{threadId}] " +
+                                $"" + $"Latency: {elapsedMs} ms | " + 
+                                $"Thread Messages: {threadMessageCount} | " + 
+                                $"Total Messages: {totalMessages}" );
                         }
                     }
 
