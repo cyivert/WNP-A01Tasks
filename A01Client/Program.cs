@@ -28,6 +28,8 @@ namespace A01Client
     {
         private static int totalMessages = 0;                           // Counter: Total messages sent across all threads
         private static readonly object lockObject = new object();       // Lock object for thread-safe counter increment
+        private static long totalLatencyMs = 0;                        // Counter: Total latency in milliseconds
+        private static readonly object latencyLock = new object();      // Lock object for thread-safe latency increment
         private static bool isRunning = true;                           // Flag: Client running status
         static async Task Main(string[] args)
         {
@@ -76,7 +78,6 @@ namespace A01Client
             await Task.WhenAll(clientTasks);
             totalTimer.Stop();
 
-            // **DISABLED**
             // Display performance summary
             Console.WriteLine("\n========================================");
             Console.WriteLine("PERFORMANCE SUMMARY");
@@ -90,7 +91,7 @@ namespace A01Client
             {
                 double messagesPerSecond = totalMessages / (totalTimer.ElapsedMilliseconds / 1000.0);
                 Console.WriteLine($"Average Messages per Second: {messagesPerSecond:F2}");
-                double averageLatency = totalTimer.ElapsedMilliseconds / (double)totalMessages;
+                double averageLatency = totalLatencyMs / (double)totalMessages;
                 Console.WriteLine($"Average Latency per Message: {averageLatency:F2} ms");
             }
 
@@ -114,23 +115,26 @@ namespace A01Client
         private static async Task RunClientThread(string serverIp, int serverPort, string clientThreadId)
         {
             int threadMessageCount = 0;
-            PerformanceTracker threadTracker = new PerformanceTracker();
 
             Console.WriteLine($"{clientThreadId} Thread started.");
 
             while (isRunning)
             {
+
                 try
                 {
                     using (TcpClient client = new TcpClient())
                     {
-                        // Start tracking time before connection: enables latency measurement more accurately
+                        // 1 Create a new TcpClient for each connection
+                        PerformanceTracker threadTracker = new PerformanceTracker();
+
+                        // 2 Start tracking time before connection: enables latency measurement more accurately
                         threadTracker.StartTracking();
 
-                        // Connect to server
+                        //3  Connect to the server asynchronously
                         await client.ConnectAsync(serverIp, serverPort);
 
-                        // Get elapsed time (in milliseconds)
+                        // 4 Get elapsed time since tracking started
                         long elapsedMs = threadTracker.GetElapsedMs();
 
                         // Get the network stream to send data to the server
@@ -156,12 +160,20 @@ namespace A01Client
                                 totalMessages++;
                             }
 
+                            // Update total latency
+                            lock (latencyLock)
+                            {
+                                totalLatencyMs += elapsedMs;
+                            }
+
                             // Log thread send details
                             Console.WriteLine(
                                 $"{clientThreadId} " +
                                 $"" + $"Latency:{elapsedMs} ms | " + 
                                 $"Messages:{threadMessageCount} | " + 
                                 $"Total Messages:{totalMessages}" );
+
+                            client.Close();
                         }
                     }
 

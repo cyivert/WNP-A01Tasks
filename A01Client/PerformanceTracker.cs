@@ -27,7 +27,7 @@ namespace A01Client
         //
         public void StartTracking()
         {
-            watch.Start();
+            watch.Restart();
             return;
         }
 
