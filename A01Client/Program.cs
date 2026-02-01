@@ -28,7 +28,7 @@ namespace A01Client
     {
         private static int totalMessages = 0;                           // Counter: Total messages sent across all threads
         private static readonly object lockObject = new object();       // Lock object for thread-safe counter increment
-        private static long totalLatencyMs = 0;                        // Counter: Total latency in milliseconds
+        private static double totalLatencyMs = 0;                        // Counter: Total latency in milliseconds
         private static readonly object latencyLock = new object();      // Lock object for thread-safe latency increment
         private static bool isRunning = true;                           // Flag: Client running status
         static async Task Main(string[] args)
@@ -80,12 +80,12 @@ namespace A01Client
 
             // Display performance summary
             Console.WriteLine("\n========================================");
-            Console.WriteLine("PERFORMANCE SUMMARY");
+            Console.WriteLine("CLIENT PERFORMANCE SUMMARY");
             Console.WriteLine("========================================");
             Console.WriteLine($"Client ID: {clientLogicalID}");
             Console.WriteLine($"Total Threads: {clientThreads}");
             Console.WriteLine($"Total Messages Sent: {totalMessages}");
-            Console.WriteLine($"Total Time: {totalTimer.ElapsedMilliseconds} ms");
+            Console.WriteLine($"Total Time: {totalTimer.ElapsedMilliseconds} ms ({totalTimer.Elapsed.TotalSeconds:F2} seconds)");
 
             if (totalTimer.ElapsedMilliseconds > 0)
             {
@@ -151,6 +151,12 @@ namespace A01Client
                                 totalMessages++;
                             }
 
+                            // lock and accumulate total latency
+                            lock (latencyLock)
+                            {
+                                totalLatencyMs += elapsedMs;
+                            }
+
                             // paylaod message to server logs
                             string message = 
                                 $"{clientThreadId} " +
@@ -171,6 +177,21 @@ namespace A01Client
                                 $"Total Messages:{totalMessages}" );
 
                             await stream.FlushAsync();
+
+                            // Read server response (for shutdown signal)
+                            byte[] responseBuffer = new byte[Constants.BUFFER_SIZE];
+                            int responseBytes = await stream.ReadAsync(responseBuffer, Constants.BUFFER_OFFSET, responseBuffer.Length);
+                            if (responseBytes > 0)
+                            {
+                                string response = Encoding.ASCII.GetString(responseBuffer, Constants.BUFFER_OFFSET, responseBytes).Trim();
+                                if (response.Contains("SERVER_SHUTDOWN"))
+                                {
+                                    Console.ForegroundColor = ConsoleColor.Yellow;
+                                    Console.WriteLine($"{clientThreadId} Received shutdown signal from server. Stopping...");
+                                    Console.ResetColor();
+                                    isRunning = false;
+                                }
+                            }
                         }
                     }
 
