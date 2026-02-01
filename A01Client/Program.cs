@@ -30,6 +30,7 @@ namespace A01Client
         private static readonly object lockObject = new object();       // Lock object for thread-safe counter increment
         private static double totalLatencyMs = 0;                        // Counter: Total latency in milliseconds
         private static readonly object latencyLock = new object();      // Lock object for thread-safe latency increment
+        private static readonly object consoleLock = new object();      // Lock object for thread-safe console output
         private static bool isRunning = true;                           // Flag: Client running status
         static async Task Main(string[] args)
         {
@@ -186,10 +187,7 @@ namespace A01Client
                                 string response = Encoding.ASCII.GetString(responseBuffer, Constants.BUFFER_OFFSET, responseBytes).Trim();
                                 if (response.Contains("SERVER_SHUTDOWN"))
                                 {
-                                    Console.ForegroundColor = ConsoleColor.Yellow;
-                                    Console.WriteLine($"{clientThreadId} Received shutdown signal from server. Stopping...");
-                                    Console.ResetColor();
-                                    isRunning = false;
+                                    isRunning = false;  // Signal all threads to stop
                                 }
                             }
                         }
@@ -213,7 +211,14 @@ namespace A01Client
                 }
             }
 
-            Console.WriteLine($"{clientThreadId} Thread completed. Sent {threadMessageCount} messages.");
+            // All threads acknowledge shutdown (thread-safe console output)
+            lock (consoleLock)
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine($"{clientThreadId} Received shutdown signal from server. Stopping...");
+                Console.WriteLine($"{clientThreadId} Thread completed. Sent {threadMessageCount} messages.");
+                Console.ResetColor();
+            }
 
             return;
         }

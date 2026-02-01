@@ -280,6 +280,17 @@ namespace A01Server
                         }
                         else
                         {
+                            // Send OK acknowledgment to client
+                            try
+                            {
+                                byte[] acknowledgeMsg = Encoding.ASCII.GetBytes("OK\n");
+                                await stream.WriteAsync(acknowledgeMsg, 0, acknowledgeMsg.Length);
+                            }
+                            catch
+                            {
+                                // Client may have already disconnected - ignore
+                            }
+
                             // Log successful processing
                             Console.ForegroundColor = ConsoleColor.Blue;
                             Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] PROCESSED: {clientInfo}");
