@@ -38,10 +38,10 @@ namespace A01Client
         // RETURNS : 
         // long result : The elapsed time in milliseconds.
         //
-        public long GetElapsedMs()
+        public double GetElapsedMs()
         {
             watch.Stop();
-            long result = watch.ElapsedMilliseconds;
+            double result = watch.Elapsed.TotalMilliseconds;  // Sub-millisecond precision
             return result;
         }
     }

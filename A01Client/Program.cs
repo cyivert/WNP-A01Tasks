@@ -138,7 +138,7 @@ namespace A01Client
                         await client.ConnectAsync(serverIp, serverPort);
 
                         // 4 Get elapsed time since tracking started
-                        long elapsedMs = threadTracker.GetElapsedMs();
+                        double elapsedMs = threadTracker.GetElapsedMs();
 
                         // Get the network stream to send data to the server
                         using (NetworkStream stream = client.GetStream())
@@ -154,7 +154,7 @@ namespace A01Client
                             // paylaod message to server logs
                             string message = 
                                 $"{clientThreadId} " +
-                                $"Latency:{elapsedMs} | " +
+                                $"Latency:{elapsedMs:F2} ms | " +
                                 $"Messages:{threadMessageCount} | " +
                                 $"Total Msgs:{totalMessages}\n";
 
@@ -166,7 +166,7 @@ namespace A01Client
                             // Display message sent info to client console
                             Console.WriteLine(
                                 $"{clientThreadId} " +
-                                $"" + $"Latency:{elapsedMs} ms | " + 
+                                $"" + $"Latency:{elapsedMs:F2} ms | " + 
                                 $"Messages:{threadMessageCount} | " + 
                                 $"Total Messages:{totalMessages}" );
 
