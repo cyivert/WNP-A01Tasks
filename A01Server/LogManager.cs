@@ -37,12 +37,15 @@ namespace A01Server
         {
             bool limitReached = false;
             long maxSize = long.Parse(ConfigurationManager.AppSettings[Constants.FILE_LIMIT]);
-
-            // waits for the lock or cancel if  the server is stopping
-            await fileLock.WaitAsync(token);
+            bool lockAcquired = false; // FLAG: lock acquired status
 
             try
             {
+                // waits for the lock or cancel if  the server is stopping
+                await fileLock.WaitAsync(token);
+                lockAcquired = true;
+
+                // mark that the lock is acquired
                 token.ThrowIfCancellationRequested();
 
                 // Use StreamWriter for asynchronous file writing
@@ -58,13 +61,21 @@ namespace A01Server
                     limitReached = true;
                 }
             }
+            catch (OperationCanceledException)
+            {
+                // when server is stopping, just exit gracefully
+            }
             catch (Exception ex)
             {
                 Console.WriteLine("Log Error: " + ex.Message);
             }
             finally
             {
-                fileLock.Release(); // release the semaphore
+                // release the lock
+                if (lockAcquired)
+                {
+                    fileLock.Release();
+                }
             }
 
             return limitReached;
