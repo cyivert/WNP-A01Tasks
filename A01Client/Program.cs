@@ -91,8 +91,11 @@ namespace A01Client
             {
                 double messagesPerSecond = totalMessages / (totalTimer.ElapsedMilliseconds / 1000.0);
                 Console.WriteLine($"Average Messages per Second: {messagesPerSecond:F2}");
-                double averageLatency = totalLatencyMs / (double)totalMessages;
-                Console.WriteLine($"Average Latency per Message: {averageLatency:F2} ms");
+                if (totalMessages > 0)
+                {
+                    double averageLatency = totalLatencyMs / (double)totalMessages;
+                    Console.WriteLine($"Average Latency per Message: {averageLatency:F2} ms");
+                }
             }
 
             Console.WriteLine("========================================");
@@ -142,6 +145,12 @@ namespace A01Client
                         {
                             threadMessageCount++;
 
+                            // lock and increment total message count
+                            lock (lockObject)
+                            {
+                                totalMessages++;
+                            }
+
                             // paylaod message to server logs
                             string message = 
                                 $"{clientThreadId} " +
@@ -153,18 +162,6 @@ namespace A01Client
 
                             // Send data asynchronously
                             await stream.WriteAsync(data, 0, data.Length);
-
-                            // Update shared counters
-                            lock (lockObject)
-                            {
-                                totalMessages++;
-                            }
-
-                            // Update total latency
-                            lock (latencyLock)
-                            {
-                                totalLatencyMs += elapsedMs;
-                            }
 
                             // Log thread send details
                             Console.WriteLine(
