@@ -32,5 +32,8 @@ namespace A01Server.utils
 
         // Log File
         public const string LOG_FILE_NAME = "log.txt";                  // Log file name
+
+        public const int MIN_VALID_PORT = 0;                             // Minimum valid port number
+        public const int MAX_VALID_PORT = 65535;                         // Maximum valid port number
     }
 }

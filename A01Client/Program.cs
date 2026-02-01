@@ -144,7 +144,7 @@ namespace A01Client
 
                             // paylaod message to server logs
                             string message = 
-                                $"Client ID: {clientThreadId} " +
+                                $"{clientThreadId} " +
                                 $"Latency:{elapsedMs} | " +
                                 $"Messages:{threadMessageCount} | " +
                                 $"Total Msgs:{totalMessages}\n";

@@ -37,6 +37,26 @@ namespace A01Server
             string ipString = ConfigurationManager.AppSettings[Constants.SERVER_IP];                            // Read server IP from config file
             int port = int.Parse(ConfigurationManager.AppSettings[Constants.SERVER_PORT]);                      // Read server port from config file
 
+            // App.config validation checks for IP and port
+            if (string.IsNullOrEmpty(ipString))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("ERROR: ServerIP not configured in App.config");
+                Console.ResetColor();
+                Console.ReadKey();
+                return;
+            }
+
+            // 0 -> 65535 valid port range check
+            if (port <= Constants.MIN_VALID_PORT || port > Constants.MAX_VALID_PORT)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("ERROR: Invalid server port configured in App.config");
+                Console.ResetColor();
+                Console.ReadKey();
+                return;
+            }
+
             IPAddress hostAddress = IPAddress.Parse(ipString);                                                  // Parse the IP address string to an IPAddress object named hostAddress
             TcpListener server = new TcpListener(hostAddress, port);                                            // Create a TCP listener named server
             LogManager logger = new LogManager();                                                               // Create a log manager instance named logger
