@@ -24,7 +24,6 @@ namespace A01Server
     {
         private string logFilePath = Constants.LOG_FILE_NAME; // "log.txt" file path
         private static readonly SemaphoreSlim fileLock = new SemaphoreSlim(1, 1); // prevent concurrency conflicts (e.g., multiple clients trying to write to log simultaneously)
-        bool lockAcquired = false; // FLAG: lock acquired status
 
         //
         // FUNCTION : WriteLogAsync
@@ -38,11 +37,13 @@ namespace A01Server
         {
             bool limitReached = false;
             long maxSize = long.Parse(ConfigurationManager.AppSettings[Constants.FILE_LIMIT]);
+            bool lockAcquired = false; // FLAG: lock acquired status
 
             try
             {
                 // waits for the lock or cancel if  the server is stopping
                 await fileLock.WaitAsync(token);
+                lockAcquired = true;
 
                 // mark that the lock is acquired
                 token.ThrowIfCancellationRequested();

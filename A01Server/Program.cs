@@ -229,7 +229,9 @@ namespace A01Server
                 {
                     byte[] buffer = new byte[Constants.BUFFER_SIZE];                                                                                      // Buffer for incoming data
                     int bytesRead = Constants.DISCONNECT_SIGNAL;
-                    bytesRead = await stream.ReadAsync(buffer, Constants.BUFFER_OFFSET, buffer.Length);                                                   // Read data from client
+
+                    // Read data from client
+                    bytesRead = await stream.ReadAsync(buffer, Constants.BUFFER_OFFSET, buffer.Length);
 
                     if (bytesRead > Constants.DISCONNECT_SIGNAL)
                     {

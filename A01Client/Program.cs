@@ -163,14 +163,14 @@ namespace A01Client
                             // Send data asynchronously
                             await stream.WriteAsync(data, 0, data.Length);
 
-                            // Log thread send details
+                            // Display message sent info to client console
                             Console.WriteLine(
                                 $"{clientThreadId} " +
                                 $"" + $"Latency:{elapsedMs} ms | " + 
                                 $"Messages:{threadMessageCount} | " + 
                                 $"Total Messages:{totalMessages}" );
 
-                            client.Close();
+                            await stream.FlushAsync();
                         }
                     }
 
