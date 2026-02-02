@@ -179,7 +179,6 @@ namespace A01Server
                 Console.WriteLine("========================================");
                 Console.WriteLine($"Total Uptime: {serverUptime.ElapsedMilliseconds} ms ({serverUptime.Elapsed.TotalSeconds:F2} seconds)");
                 Console.WriteLine($"Total Messages Received: {totalMessagesReceived}");
-                Console.WriteLine($"Existing Log File Size: {initialLogFileSize} bytes");
                 Console.WriteLine($"Session Bytes Received: {sessionBytesReceived} bytes");
                 Console.WriteLine($"Total Bytes Recorded: {totalBytesReceived} bytes");
                 if (fileSizeLimit > 0)
