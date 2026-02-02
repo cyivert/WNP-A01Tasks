@@ -1,7 +1,7 @@
 ﻿/*
 * FILE : Program.cs (SERVER)
 * PROJECT : A01-Tasks
-* PROGRAMMER : Cy Iver Torrefranca 
+* PROGRAMMER : Cy Iver Torrefranca
 * DESCRIPTION :
 * This file contains the main server program that listens for client connections,
 * receives messages asynchronously, logs them to a file, and handles graceful shutdown
