@@ -3,7 +3,7 @@
 * PROJECT : A01-Tasks
 * PROGRAMMER : Cy Iver Torrefranca
 * DESCRIPTION :
-* The functions in this file are used to ...
+* This class is responsible for tracking performance metrics such as elapsed time and provides methods to start and stop the tracking.
 */
 
 using System;
