@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -38,7 +39,10 @@ namespace A01Server
 
         // Performance metrics
         private static int totalMessagesReceived = 0;                           // Counter: Total messages received
-        private static long totalBytesReceived = 0;                             // Counter: Total bytes received
+        private static long totalBytesReceived = 0;                             // Counter: Total bytes recorded in log file
+        private static long sessionBytesReceived = 0;                           // Counter: Session bytes received
+        private static long initialLogFileSize = 0;                             // Bytes already present in log file
+        private static long fileSizeLimit = 0;                                  // Configured log file limit
         private static Stopwatch serverUptime = new Stopwatch();                // Timer: Server uptime
         private static readonly object metricsLock = new object();              // Lock: Thread-safe metrics updates
         static async Task Main(string[] args)
@@ -69,6 +73,8 @@ namespace A01Server
             IPAddress hostAddress = IPAddress.Parse(ipString);                                                  // Parse the IP address string to an IPAddress object named hostAddress
             TcpListener server = new TcpListener(hostAddress, port);                                            // Create a TCP listener named server
             LogManager logger = new LogManager();                                                               // Create a log manager instance named logger
+
+            InitializeLogFileMetrics();
 
             try
             {
@@ -167,20 +173,27 @@ namespace A01Server
                 }
 
                 // Display performance metrics
+                RefreshLogFileSize();
                 Console.WriteLine("\n========================================");
                 Console.WriteLine("SERVER PERFORMANCE METRICS");
                 Console.WriteLine("========================================");
                 Console.WriteLine($"Total Uptime: {serverUptime.ElapsedMilliseconds} ms ({serverUptime.Elapsed.TotalSeconds:F2} seconds)");
                 Console.WriteLine($"Total Messages Received: {totalMessagesReceived}");
-                Console.WriteLine($"Total Bytes Received: {totalBytesReceived}");
+                Console.WriteLine($"Existing Log File Size: {initialLogFileSize} bytes");
+                Console.WriteLine($"Session Bytes Received: {sessionBytesReceived} bytes");
+                Console.WriteLine($"Total Bytes Recorded: {totalBytesReceived} bytes");
+                if (fileSizeLimit > 0)
+                {
+                    Console.WriteLine($"Configured File Size Limit: {fileSizeLimit} bytes");
+                }
                 Console.WriteLine($"Total Clients Connected: {clientCounter}");
 
                 if (serverUptime.ElapsedMilliseconds > 0)
                 {
                     double messagesPerSecond = totalMessagesReceived / (serverUptime.ElapsedMilliseconds / 1000.0);
-                    double bytesPerSecond = totalBytesReceived / (serverUptime.ElapsedMilliseconds / 1000.0);
+                    double bytesPerSecond = sessionBytesReceived / (serverUptime.ElapsedMilliseconds / 1000.0);
                     Console.WriteLine($"Average Messages/Second: {messagesPerSecond:F2}");
-                    Console.WriteLine($"Average Bytes/Second: {bytesPerSecond:F2}");
+                    Console.WriteLine($"Average Bytes/Second (Session): {bytesPerSecond:F2}");
                 }
                 Console.WriteLine("========================================");
 
@@ -212,7 +225,7 @@ namespace A01Server
         // TcpClient client - The connected client.
         // LogManager logger - The log manager instance.
         // RETURNS :
-        // to be determined
+        // Task - Represents the asynchronous operation.
         //
         private static async Task HandleClientAsync(TcpClient client, LogManager logger, CancellationToken token)
         {
@@ -242,10 +255,16 @@ namespace A01Server
                         lock (metricsLock)
                         {
                             totalMessagesReceived++;
-                            totalBytesReceived += bytesRead;
+                            sessionBytesReceived += bytesRead;
                         }
 
-                        bool limitReached = await logger.WriteLogAsync(formattedMessage, token);                                                          // Write log using LogManager
+                        bool limitReached = await logger.WriteLogAsync(formattedMessage, token);
+                        RefreshLogFileSize();
+
+                        if (!limitReached && fileSizeLimit > 0)
+                        {
+                            limitReached = totalBytesReceived >= fileSizeLimit;
+                        }
 
                         // Check if file size limit reached
                         if (limitReached)
@@ -320,6 +339,75 @@ namespace A01Server
             }
 
             return;
+        }
+        //
+        // FUNCTION : InitializeLogFileMetrics
+        // DESCRIPTION : This method loads existing log file size and configures file size limit from App.config and updates perofrmance metrics.
+        // PARAMETERS : n/a
+        // RETURNS : n/a
+        // 
+        //
+        private static void InitializeLogFileMetrics()
+        {
+            // Read file size limit from App.config
+            string fileLimitSetting = ConfigurationManager.AppSettings[Constants.FILE_LIMIT];
+            if (!long.TryParse(fileLimitSetting, out fileSizeLimit))
+            {
+                fileSizeLimit = 0;
+            }
+
+            try
+            {
+                // Check existing log file size
+                FileInfo logFileInfo = new FileInfo(Constants.LOG_FILE_NAME);
+                if (logFileInfo.Exists)
+                {
+                    initialLogFileSize = logFileInfo.Length;
+                    lock (metricsLock)
+                    {
+                        totalBytesReceived = initialLogFileSize;
+                    }
+
+                    // Warn if existing log file size exceeds limit
+                    if (initialLogFileSize > 0)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] WARNING: Existing log file detected ({initialLogFileSize} bytes).");
+                        if (fileSizeLimit > 0)
+                        {
+                            Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Configured file size limit: {fileSizeLimit} bytes.");
+                        }
+                        Console.ResetColor();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ERROR: Unable to inspect log file. {ex.Message}");
+                Console.ResetColor();
+            }
+        }
+
+        private static void RefreshLogFileSize()
+        {
+            try
+            {
+                FileInfo logFileInfo = new FileInfo(Constants.LOG_FILE_NAME);
+                if (logFileInfo.Exists)
+                {
+                    lock (metricsLock)
+                    {
+                        totalBytesReceived = logFileInfo.Length;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ERROR: Unable to refresh log file size. {ex.Message}");
+                Console.ResetColor();
+            }
         }
     }
 }
