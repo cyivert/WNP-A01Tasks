@@ -257,15 +257,19 @@ namespace A01Server
                             sessionBytesReceived += bytesRead;
                         }
 
+                        // write to log file and check for limit
                         bool limitReached = await logger.WriteLogAsync(formattedMessage, token);
+
+                        // Refresh log file size for tracking
                         RefreshLogFileSize();
 
+                        // Check file size limit
                         if (!limitReached && fileSizeLimit > 0)
                         {
                             limitReached = totalBytesReceived >= fileSizeLimit;
                         }
 
-                        // Check if file size limit reached
+                        // Check if file size limit reached and initiate shutdown
                         if (limitReached)
                         {
                             // Thread-safe shutdown initiation
@@ -285,7 +289,7 @@ namespace A01Server
                                 }
                             }
 
-                            // Add shutdown message to client (adding later)
+                            // Send shutdown acknowledgment to client
                             try
                             {
                                 byte[] shutdownMsg = Encoding.ASCII.GetBytes("SERVER_SHUTDOWN\n");
@@ -387,7 +391,13 @@ namespace A01Server
                 Console.ResetColor();
             }
         }
-
+        //
+        // FUNCTION : RefreshLogFileSize
+        // DESCRIPTION : This function refreshes the totalBytesReceived metric by checking the current size of the log file.
+        // PARAMETERS : n/a
+        // RETURNS : n/a
+        // 
+        //
         private static void RefreshLogFileSize()
         {
             try
